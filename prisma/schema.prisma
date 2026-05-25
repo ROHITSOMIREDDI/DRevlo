@@ -1,0 +1,195 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+model User {
+  id                 String         @id @default(uuid())
+  email              String         @unique
+  name               String?
+  githubId           String         @unique @map("github_id")
+  plan               Plan           @default(FREE)
+  stripeCustomerId   String?        @unique @map("stripe_customer_id")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  
+  // Relations
+  memberships        TeamMember[]
+  managedTeams       Team[]         @relation("TeamOwner")
+  subscriptions      Subscription[]
+
+  @@map("users")
+}
+
+model Team {
+  id               String       @id @default(uuid())
+  name             String
+  slug             String       @unique
+  ownerId          String       @map("owner_id")
+  githubOrg        String?      @map("github_org")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  owner            User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members          TeamMember[]
+  repositories     Repository[]
+  standups         Standup[]
+  sprints          Sprint[]
+  aiReports        AiReport[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String   @map("team_id")
+  userId    String   @map("user_id")
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Repository {
+  id           String        @id @default(uuid())
+  teamId       String        @map("team_id")
+  githubRepoId String        @map("github_repo_id")
+  name         String
+  fullName     String        @map("full_name")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  commits      Commit[]
+  pullRequests PullRequest[]
+
+  @@unique([teamId, githubRepoId])
+  @@map("repositories")
+}
+
+model Commit {
+  id        String   @id @default(uuid())
+  repoId    String   @map("repo_id")
+  authorId  String   @map("author_id") // GitHub username or ID
+  sha       String   @unique
+  message   String
+  timestamp DateTime
+
+  // Relations
+  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@map("commits")
+}
+
+model PullRequest {
+  id              String      @id @default(uuid())
+  repoId          String      @map("repo_id")
+  githubPrId      String      @map("github_pr_id")
+  title           String
+  state           String      // "open", "closed", "merged"
+  cycleTimeHours  Float?      @map("cycle_time_hours")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  mergedAt        DateTime?   @map("merged_at")
+
+  // Relations
+  repository      Repository  @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  reviews         PrReview[]
+
+  @@unique([repoId, githubPrId])
+  @@map("pull_requests")
+}
+
+model PrReview {
+  id          String   @id @default(uuid())
+  prId        String   @map("pr_id")
+  reviewerId  String   @map("reviewer_id")
+  submittedAt DateTime @map("submitted_at")
+  state       String   // "approved", "changes_requested", "commented"
+
+  // Relations
+  pullRequest PullRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
+
+  @@map("pr_reviews")
+}
+
+model Standup {
+  id        String   @id @default(uuid())
+  teamId    String   @map("team_id")
+  userId    String   @map("user_id")
+  content   String   // JSON string storing { yesterday: string, today: string, blockers: string }
+  aiSummary String?  @map("ai_summary")
+  date      DateTime @db.Date
+
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId, date])
+  @@map("standups")
+}
+
+model Sprint {
+  id        String   @id @default(uuid())
+  teamId    String   @map("team_id")
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  velocity  Int      @default(0)
+
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("sprints")
+}
+
+model AiReport {
+  id          String   @id @default(uuid())
+  teamId      String   @map("team_id")
+  type        String   // "standup", "health_score", "review", "retro"
+  content     String   // text or JSON content
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  // Relations
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("ai_reports")
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  userId        String             @map("user_id")
+  stripeSubId   String             @unique @map("stripe_sub_id")
+  plan          Plan               @default(FREE)
+  status        SubscriptionStatus @default(ACTIVE)
+  periodEnd     DateTime           @map("period_end")
+
+  // Relations
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
