@@ -1,0 +1,126 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { signJWT } from '@/lib/jwt';
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  if (!code) {
+    return NextResponse.redirect(`${appUrl}/login?error=no_code`);
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.json(
+      { error: 'GitHub client credentials are not configured' },
+      { status: 500 }
+    );
+  }
+
+  try {
+    // 1. Exchange code for access token
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: `${appUrl}/api/auth/callback`,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (tokenData.error) {
+      console.error('GitHub token exchange error:', tokenData.error_description || tokenData.error);
+      return NextResponse.redirect(`${appUrl}/login?error=token_exchange_failed`);
+    }
+
+    const accessToken = tokenData.access_token;
+
+    // 2. Fetch user profile from GitHub
+    const userProfileResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'User-Agent': 'Drevlo',
+      },
+    });
+
+    if (!userProfileResponse.ok) {
+      console.error('Failed to fetch GitHub user profile');
+      return NextResponse.redirect(`${appUrl}/login?error=profile_fetch_failed`);
+    }
+
+    const githubUser = await userProfileResponse.json();
+
+    // 3. Fetch user emails from GitHub (handles private emails)
+    let email = githubUser.email;
+    if (!email) {
+      const emailsResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': 'Drevlo',
+        },
+      });
+
+      if (emailsResponse.ok) {
+        const emails = await emailsResponse.json();
+        const primaryEmail = emails.find((e: any) => e.primary && e.verified) || emails[0];
+        if (primaryEmail) {
+          email = primaryEmail.email;
+        }
+      }
+    }
+
+    if (!email) {
+      console.error('No email found for GitHub user');
+      return NextResponse.redirect(`${appUrl}/login?error=no_email_found`);
+    }
+
+    // 4. Create or update user in database
+    const githubIdStr = String(githubUser.id);
+    const user = await prisma.user.upsert({
+      where: { githubId: githubIdStr },
+      update: {
+        email,
+        name: githubUser.name || githubUser.login,
+      },
+      create: {
+        githubId: githubIdStr,
+        email,
+        name: githubUser.name || githubUser.login,
+      },
+    });
+
+    // 5. Sign JWT session token
+    const token = await signJWT({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      githubId: user.githubId,
+    });
+
+    // 6. Set JWT session cookie and redirect to dashboard
+    const response = NextResponse.redirect(appUrl);
+    response.cookies.set('drevlo_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+    });
+
+    return response;
+  } catch (error) {
+    console.error('GitHub authentication callback failed:', error);
+    return NextResponse.redirect(`${appUrl}/login?error=auth_internal_error`);
+  }
+}
