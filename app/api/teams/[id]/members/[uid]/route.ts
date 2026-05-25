@@ -4,15 +4,14 @@ import { getSessionUser } from '@/lib/auth';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; uid: string } }
+  { params }: { params: Promise<{ id: string; uid: string }> }
 ) {
   const user = await getSessionUser(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const teamId = params.id;
-  const targetUserId = params.uid;
+  const { id: teamId, uid: targetUserId } = await params;
 
   try {
     // 1. Verify requester is an ADMIN of the team

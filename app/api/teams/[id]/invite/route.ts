@@ -10,14 +10,14 @@ const inviteSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const teamId = params.id;
+  const { id: teamId } = await params;
 
   try {
     // 1. Verify requester is an ADMIN of the team
