@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { stripe } from '@/lib/stripe';
+import Stripe from 'stripe';
+
+interface StripeSubscription {
+  current_period_end: number;
+  id: string;
+  customer: string;
+  status: string;
+}
 
 export async function POST(request: NextRequest) {
   const payload = await request.text();
@@ -17,9 +25,10 @@ export async function POST(request: NextRequest) {
       event = JSON.parse(payload);
       console.warn('Stripe Webhook signature check skipped: Stripe is not configured or Webhook Secret is missing.');
     }
-  } catch (err: any) {
-    console.error(`Stripe Webhook signature verification failed: ${err.message}`);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`Stripe Webhook signature verification failed: ${errorMessage}`);
+    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
   }
 
   const eventType = event.type;
@@ -28,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Handle checkout session completion
     if (eventType === 'checkout.session.completed') {
-      const session = event.data.object as any;
+      const session = event.data.object as Stripe.Checkout.Session;
       const subscriptionId = session.subscription as string;
       const customerId = session.customer as string;
       const userId = session.metadata?.userId;
@@ -36,7 +45,7 @@ export async function POST(request: NextRequest) {
 
       if (userId && subscriptionId && stripe) {
         // Fetch detailed subscription details from Stripe
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as unknown as StripeSubscription;
         const periodEnd = new Date(subscription.current_period_end * 1000);
 
         // Update User plan to PRO
@@ -71,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Handle subscription creation / updates
     if (eventType === 'customer.subscription.created' || eventType === 'customer.subscription.updated') {
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as unknown as StripeSubscription;
       const subscriptionId = subscription.id;
       const customerId = subscription.customer as string;
       const status = subscription.status; // active, past_due, trialing, etc.
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Handle subscription deletion / cancellations
     if (eventType === 'customer.subscription.deleted') {
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as unknown as StripeSubscription;
       const subscriptionId = subscription.id;
       const customerId = subscription.customer as string;
 
@@ -153,10 +162,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Stripe webhook handling failed:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

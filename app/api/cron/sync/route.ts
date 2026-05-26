@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
           await syncCommits(repo.id, since);
           await syncPullRequests(repo.id);
           syncCount++;
-        } catch (err: any) {
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'unknown error';
           console.error(`Safety-net sync failed for repository ${repo.fullName}:`, err);
-          errors.push({ repoId: repo.id, error: err.message || 'unknown error' });
+          errors.push({ repoId: repo.id, error: errorMessage });
         }
       }
     }

@@ -6,7 +6,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 // and handle the fallback in the API endpoints to facilitate mock testing.
 export const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-      apiVersion: '2024-12-18.acme' as any,
+      apiVersion: '2024-12-18.acme' as unknown as never,
     })
   : null;
 
