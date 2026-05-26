@@ -47,6 +47,7 @@ model Team {
   slug             String       @unique
   ownerId          String       @map("owner_id")
   githubOrg        String?      @map("github_org")
+  timezone         String       @default("UTC")
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
