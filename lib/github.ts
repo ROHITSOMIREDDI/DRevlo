@@ -18,6 +18,39 @@ const app = hasAppConfig
  * Retrieves an authenticated Octokit client instance for a given GitHub App installation.
  */
 export async function getInstallationClient(installationId: string) {
+  if (installationId.startsWith('mock-')) {
+    return {
+      rest: {
+        apps: {
+          listReposAccessibleToInstallation: async () => {
+            return {
+              data: {
+                repositories: [
+                  { id: 101, name: 'react-dashboard', full_name: 'acme/react-dashboard' },
+                  { id: 102, name: 'api-service', full_name: 'acme/api-service' },
+                  { id: 103, name: 'docs-site', full_name: 'acme/docs-site' },
+                ],
+              },
+            };
+          },
+        },
+        repos: {
+          listCommits: async () => {
+            return { data: [] };
+          },
+        },
+        pulls: {
+          list: async () => {
+            return { data: [] };
+          },
+          listReviews: async () => {
+            return { data: [] };
+          },
+        },
+      },
+    } as unknown as never;
+  }
+
   if (!app) {
     throw new Error('GitHub App is not fully configured (GITHUB_APP_ID or GITHUB_APP_PRIVATE_KEY is missing)');
   }

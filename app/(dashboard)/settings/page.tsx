@@ -258,7 +258,13 @@ export default function SettingsPage() {
 
   const handleGitHubConnect = () => {
     if (!activeTeam) return;
-    const githubAppName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'drevlo-app';
+    const githubAppName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
+    if (!githubAppName || githubAppName === 'drevlo-app') {
+      // In local testing when no custom GitHub App is configured, bypass redirect to GitHub
+      // and redirect directly to callback with a mock installation ID
+      window.location.href = `/api/github/connect?installation_id=mock-installation-123&state=${activeTeam.teamId}`;
+      return;
+    }
     const redirectUrl = `https://github.com/apps/${githubAppName}/installations/new?state=${activeTeam.teamId}`;
     window.location.href = redirectUrl;
   };
