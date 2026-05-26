@@ -42,3 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+
+# Documents 
+CLAUDE.md
+AGENTS.md
+srs_analysis_report.md
+DRevlo_SRS_v1.0.docx
