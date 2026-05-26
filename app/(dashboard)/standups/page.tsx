@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../layout';
-import { Calendar, User, Clock, CheckCircle2, AlertCircle, Plus, BookOpen, Send } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle2, AlertCircle, Plus, BookOpen, Send, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface StandupEntry {
@@ -107,6 +107,8 @@ export default function StandupsPage() {
     return todayStr === standupDateStr;
   });
 
+  const standupsWithSummary = standups.filter((s) => s.aiSummary);
+
   return (
     <div className="space-y-8 max-w-6xl">
       {/* Header section */}
@@ -148,6 +150,33 @@ export default function StandupsPage() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* AI Summary aggregate banner at the top of updates feed */}
+                {standupsWithSummary.length > 0 && (
+                  <div className="p-5 rounded-xl border border-cyan-800/20 bg-gradient-to-br from-cyan-950/15 to-slate-950/40 shadow-lg relative overflow-hidden mb-6">
+                    <div className="absolute top-0 right-0 h-24 w-24 rounded-full bg-cyan-500/5 blur-2xl pointer-events-none" />
+                    <div className="flex items-center justify-between mb-4 border-b border-cyan-900/20 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+                        <span className="text-xs font-black tracking-wider text-slate-200 uppercase">AI Standup Summaries Feed</span>
+                      </div>
+                      <span className="text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full px-2 py-0.5 font-bold uppercase">Gemini 2.5 Flash</span>
+                    </div>
+                    <div className="space-y-4">
+                      {standupsWithSummary.map((s) => (
+                        <div key={s.id} className="text-xs">
+                          <p className="font-bold text-cyan-300 mb-1 flex items-center">
+                            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 mr-2" />
+                            {s.author.name}
+                          </p>
+                          <div className="text-slate-300 pl-3.5 border-l border-cyan-800/40 whitespace-pre-wrap text-[11px] leading-relaxed font-medium">
+                            {s.aiSummary}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {standups.map((entry) => (
                   <div
                     key={entry.id}
@@ -169,19 +198,19 @@ export default function StandupsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Yesterday</span>
-                        <p className="text-slate-300 bg-slate-900/50 p-2.5 rounded-lg border border-slate-900/40 leading-relaxed">
+                        <p className="text-slate-300 bg-slate-900/50 p-2.5 rounded-lg border border-slate-900/40 leading-relaxed font-medium">
                           {entry.yesterday}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Today</span>
-                        <p className="text-slate-300 bg-slate-900/50 p-2.5 rounded-lg border border-slate-900/40 leading-relaxed">
+                        <p className="text-slate-300 bg-slate-900/50 p-2.5 rounded-lg border border-slate-900/40 leading-relaxed font-medium">
                           {entry.today}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Blockers</span>
-                        <p className={`p-2.5 rounded-lg border leading-relaxed ${
+                        <p className={`p-2.5 rounded-lg border leading-relaxed font-medium ${
                           entry.blockers.toLowerCase() !== 'none'
                             ? 'text-red-400 bg-red-950/5 border-red-900/20'
                             : 'text-slate-400 bg-slate-900/50 border-slate-900/40'
@@ -190,6 +219,19 @@ export default function StandupsPage() {
                         </p>
                       </div>
                     </div>
+
+                    {/* AI summary on individual standup card */}
+                    {entry.aiSummary && (
+                      <div className="mt-4 border-t border-slate-900 pt-3">
+                        <div className="flex items-center space-x-1.5 text-cyan-400 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                          <span>Gemini Summary</span>
+                        </div>
+                        <div className="bg-cyan-950/15 border border-cyan-800/10 p-3 rounded-lg text-[11px] text-cyan-100 font-medium leading-relaxed whitespace-pre-wrap">
+                          {entry.aiSummary}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
