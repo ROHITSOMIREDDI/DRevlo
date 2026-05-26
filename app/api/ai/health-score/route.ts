@@ -144,13 +144,13 @@ export async function GET(request: NextRequest) {
     let reportData;
     try {
       reportData = JSON.parse(aiResponse);
-    } catch (parseErr) {
+    } catch {
       console.warn('Gemini response was not valid JSON, creating fallback structure:', aiResponse);
       // Clean potential JSON markdown blocks if any
       const cleanedText = aiResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       try {
         reportData = JSON.parse(cleanedText);
-      } catch (nestedErr) {
+      } catch {
         // Fallback structure
         reportData = {
           score: 75,

@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         if (parsed.blockers && parsed.blockers.toLowerCase() !== 'none' && parsed.blockers.trim() !== '') {
           blockerNotes.push(parsed.blockers.trim());
         }
-      } catch (e) {
+      } catch {
         // Ignored
       }
     });

@@ -14,7 +14,6 @@ import {
   TrendingUp,
   FileText,
   Clock,
-  Github,
   Zap,
 } from 'lucide-react';
 
@@ -469,7 +468,7 @@ export default function InsightsPage() {
           </div>
         ) : reviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-xs text-center border border-slate-900/60 border-dashed rounded-xl">
-            <Github className="h-8 w-8 text-slate-700 mb-2" />
+            <Code2 className="h-8 w-8 text-slate-700 mb-2" />
             <p>No recent pull request merges tracked yet in this workspace.</p>
             <p className="text-[10px] text-slate-600 mt-1">Code review audits will automatically appear here once PRs are merged.</p>
           </div>

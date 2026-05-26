@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           yesterday = parsed.yesterday || '';
           today = parsed.today || '';
           blockers = parsed.blockers || '';
-        } catch (e) {
+        } catch {
           yesterday = standup.content;
         }
 
