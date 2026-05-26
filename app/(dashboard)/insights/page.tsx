@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../layout';
+import { useSearchParams } from 'next/navigation';
 import {
   Sparkles,
   RefreshCw,
@@ -55,10 +56,28 @@ export default function InsightsPage() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState<string | null>(null);
 
+  // Search params reader
+  const searchParams = useSearchParams();
+
   // Retro state
   const [retroText, setRetroText] = useState<string | null>(null);
   const [retroLoading, setRetroLoading] = useState(false);
   const [selectedSprint, setSelectedSprint] = useState('last_14_days');
+  const [sprints, setSprints] = useState<any[]>([]);
+
+  // Fetch Sprints list
+  const fetchSprintsList = async () => {
+    if (!activeTeam) return;
+    try {
+      const res = await fetch(`/api/sprints?teamId=${activeTeam.teamId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSprints(data.sprints || []);
+      }
+    } catch (err) {
+      console.error('Failed to load sprints list:', err);
+    }
+  };
 
   // Code Reviews state
   const [reviews, setReviews] = useState<ReviewInsight[]>([]);
@@ -157,7 +176,22 @@ export default function InsightsPage() {
   // Load everything on mount or workspace change
   useEffect(() => {
     if (activeTeam) {
+      fetchSprintsList();
       getHealthScore(false);
+    }
+  }, [activeTeam]);
+
+  // Handle URL sprintId query param
+  useEffect(() => {
+    const urlSprintId = searchParams.get('sprintId');
+    if (urlSprintId) {
+      setSelectedSprint(urlSprintId);
+    }
+  }, [searchParams]);
+
+  // Load reports when activeTeam or selectedSprint changes
+  useEffect(() => {
+    if (activeTeam) {
       getHistoricalReports();
     }
   }, [activeTeam, selectedSprint]);
@@ -381,8 +415,11 @@ export default function InsightsPage() {
                 className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-cyan-500"
               >
                 <option value="last_14_days">Last 14 Days (Rolling Window)</option>
-                <option value="sprint_1">Sprint 1 - Foundation Setup</option>
-                <option value="sprint_2">Sprint 2 - Core Operations</option>
+                {sprints.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({new Date(s.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(s.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                  </option>
+                ))}
               </select>
 
               <button
