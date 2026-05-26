@@ -57,6 +57,22 @@ export default function SettingsPage() {
   const warningParam = searchParams.get('warning');
   const errorParam = searchParams.get('error');
 
+  // GitHub App post-install redirect handler.
+  // GitHub redirects back to the app's "Setup URL" (configured as /settings) with
+  // installation_id and state as query params. We detect this and forward to our API
+  // route which saves the installation and syncs repos.
+  useEffect(() => {
+    const installationId = searchParams.get('installation_id');
+    const setupAction = searchParams.get('setup_action');
+    const state = searchParams.get('state');
+
+    if (installationId && setupAction === 'install' && activeTeam) {
+      // Forward to the connect API route to process the installation
+      const teamId = state || activeTeam.teamId;
+      window.location.href = `/api/github/connect?installation_id=${installationId}&state=${teamId}`;
+    }
+  }, [searchParams, activeTeam]);
+
   // Tabs state
   const [activeTab, setActiveTab] = useState<'workspace' | 'github' | 'members' | 'billing'>('workspace');
 
