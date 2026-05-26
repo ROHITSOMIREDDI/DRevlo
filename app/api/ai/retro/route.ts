@@ -34,6 +34,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: You do not belong to this team' }, { status: 403 });
     }
 
+    // 1.5 Enforce Pro-tier gating for manual retrospective generation
+    if (force) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { plan: true },
+      });
+      if (!dbUser || dbUser.plan !== 'PRO') {
+        return NextResponse.json(
+          { error: 'Upgrade Required: On-demand AI retrospective generation is a Pro tier feature.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // 2. Fetch Sprint details
     let sprint = null;
     let startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); // Default to last 14 days

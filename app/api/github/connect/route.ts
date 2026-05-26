@@ -34,7 +34,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/settings?error=forbidden_connection`);
     }
 
-    // 2. Associate the installationId with the team in the database
+    // 2. Fetch team and owner plan to check limits
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: { owner: true },
+    });
+
+    if (!team) {
+      return NextResponse.redirect(`${appUrl}/settings?error=team_not_found`);
+    }
+
+    // Associate the installationId with the team in the database
     await prisma.team.update({
       where: { id: teamId },
       data: {
@@ -50,7 +60,12 @@ export async function GET(request: NextRequest) {
 
     const repositories = reposResponse.data.repositories;
 
-    const repositoryUpserts = repositories.map((repo) => {
+    // Enforce limits: Free tier can connect a maximum of 2 repositories
+    const isFree = team.owner.plan === 'FREE';
+    const reposToSync = isFree ? repositories.slice(0, 2) : repositories;
+    const limitReached = isFree && repositories.length > 2;
+
+    const repositoryUpserts = reposToSync.map((repo) => {
       return prisma.repository.upsert({
         where: {
           teamId_githubRepoId: {
@@ -74,7 +89,8 @@ export async function GET(request: NextRequest) {
     await Promise.all(repositoryUpserts);
 
     // Redirect user back to workspace settings indicating success
-    return NextResponse.redirect(`${appUrl}/settings?github_connected=success`);
+    const redirectUrl = `${appUrl}/settings?github_connected=success${limitReached ? '&warning=repo_limit_reached' : ''}`;
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error('Failed to handle GitHub App installation callback:', error);
     return NextResponse.redirect(`${appUrl}/settings?error=connection_callback_failed`);

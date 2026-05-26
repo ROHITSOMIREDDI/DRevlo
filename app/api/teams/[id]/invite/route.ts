@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { sendTeamInvitationEmail } from '@/lib/email';
 import { z } from 'zod';
 
 const inviteSchema = z.object({
@@ -33,6 +34,27 @@ export async function POST(
     if (!requesterMembership || requesterMembership.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Forbidden: Only team admins can invite members' },
+        { status: 403 }
+      );
+    }
+
+    // 1.5 Verify Free Tier Limits
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: { owner: true },
+    });
+
+    if (!team) {
+      return NextResponse.json({ error: 'Team workspace not found' }, { status: 404 });
+    }
+
+    const currentMembersCount = await prisma.teamMember.count({
+      where: { teamId },
+    });
+
+    if (team.owner.plan === 'FREE' && currentMembersCount >= 3) {
+      return NextResponse.json(
+        { error: 'Workspace limit reached: Free tier is limited to 3 team members. Please upgrade to Pro.' },
         { status: 403 }
       );
     }
@@ -87,6 +109,14 @@ export async function POST(
         role,
       },
     });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const inviteLink = `${appUrl}/team`;
+    try {
+      await sendTeamInvitationEmail(invitee.email, team.name, inviteLink);
+    } catch (emailErr) {
+      console.error('Failed to send invitation email:', emailErr);
+    }
 
     return NextResponse.json({
       success: true,
