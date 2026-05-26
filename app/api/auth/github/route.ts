@@ -12,6 +12,11 @@ export async function GET() {
     );
   }
 
+  // Developer mock login bypass for local testing
+  if (clientId === 'mock-client-id') {
+    return NextResponse.redirect(`${appUrl}/api/auth/callback?code=mock-code`);
+  }
+
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
     redirectUri
   )}&scope=user:email`;

@@ -21,6 +21,40 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Developer mock login bypass for local testing
+  if (clientId === 'mock-client-id' && code === 'mock-code') {
+    const user = await prisma.user.upsert({
+      where: { githubId: 'mock-github-id-12345' },
+      update: {
+        email: 'bob@example.com',
+        name: 'Developer Bob',
+      },
+      create: {
+        githubId: 'mock-github-id-12345',
+        email: 'bob@example.com',
+        name: 'Developer Bob',
+      },
+    });
+
+    const token = await signJWT({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      githubId: user.githubId,
+    });
+
+    const response = NextResponse.redirect(appUrl);
+    response.cookies.set('drevlo_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+    });
+
+    return response;
+  }
+
   try {
     // 1. Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
@@ -72,8 +106,8 @@ export async function GET(request: NextRequest) {
       });
 
       if (emailsResponse.ok) {
-        const emails = await emailsResponse.json();
-        const primaryEmail = emails.find((e: any) => e.primary && e.verified) || emails[0];
+        const emails = await emailsResponse.json() as Array<{ email: string; primary: boolean; verified: boolean }>;
+        const primaryEmail = emails.find((e) => e.primary && e.verified) || emails[0];
         if (primaryEmail) {
           email = primaryEmail.email;
         }
