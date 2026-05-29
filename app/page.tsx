@@ -80,20 +80,12 @@ export default function LandingPage() {
                 <ArrowRight className="h-3.5 w-3.5 stroke-[3.5]" />
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-xs font-black tracking-wider text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2"
-                >
-                  SIGN IN
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 px-4 py-2.5 text-xs font-black tracking-wider shadow-lg shadow-cyan-500/10 transition-all duration-200 active:scale-[0.98]"
-                >
-                  GET STARTED
-                </Link>
-              </>
+              <Link
+                href="/login"
+                className="rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 px-4 py-2.5 text-xs font-black tracking-wider shadow-lg shadow-cyan-500/10 transition-all duration-200 active:scale-[0.98]"
+              >
+                GET STARTED
+              </Link>
             )}
           </div>
         </div>
