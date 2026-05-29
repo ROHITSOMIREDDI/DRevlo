@@ -280,11 +280,11 @@ export default function LandingPage() {
             <ul className="space-y-2 text-xs text-slate-300 font-semibold border-t border-slate-900 pt-4">
               <li className="flex items-center space-x-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
-                <span>Max 3 team members</span>
+                <span>Max 4 team members</span>
               </li>
               <li className="flex items-center space-x-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
-                <span>Max 2 connected repositories</span>
+                <span>Max 3 connected repositories</span>
               </li>
               <li className="flex items-center space-x-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
