@@ -73,7 +73,8 @@ describe('Gemini AI Provider & Prompts', () => {
 
     it('should format code review prompt correctly', () => {
       const prompt = getCodeReviewPrompt('Update README', 2, 10, 5, ['Reviewer: Alice, Action: approved'], 2.5);
-      expect(prompt).toContain('PR Title: Update README');
+      expect(prompt).toContain('PR Title:');
+      expect(prompt).toContain('<pr_title>\nUpdate README\n</pr_title>');
       expect(prompt).toContain('Files changed: 2');
       expect(prompt).toContain('Lines added: 10');
       expect(prompt).toContain('Time to first review: 2.5 hours');

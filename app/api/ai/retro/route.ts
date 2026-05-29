@@ -59,12 +59,13 @@ export async function GET(request: NextRequest) {
       sprint = await prisma.sprint.findUnique({
         where: { id: sprintId },
       });
-      if (sprint) {
-        startDate = sprint.startDate;
-        endDate = sprint.endDate;
-        sprintName = sprint.name;
-        sprintIdKey = sprint.id;
+      if (!sprint || sprint.teamId !== teamId) {
+        return NextResponse.json({ error: 'Sprint not found or does not belong to this team' }, { status: 400 });
       }
+      startDate = sprint.startDate;
+      endDate = sprint.endDate;
+      sprintName = sprint.name;
+      sprintIdKey = sprint.id;
     } else {
       // Find the latest sprint for the team
       const latestSprint = await prisma.sprint.findFirst({

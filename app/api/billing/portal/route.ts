@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
+import { z } from 'zod';
+
+const portalSchema = z.object({
+  teamId: z.string().uuid('Invalid team ID format'),
+});
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -11,11 +16,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { teamId } = body;
+    const result = portalSchema.safeParse(body);
 
-    if (!teamId) {
-      return NextResponse.json({ error: 'Missing teamId parameter' }, { status: 400 });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: result.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
+
+    const { teamId } = result.data;
 
     // 1. Verify user is an Admin of the team
     const membership = await prisma.teamMember.findUnique({

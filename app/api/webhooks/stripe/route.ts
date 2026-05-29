@@ -15,15 +15,22 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature');
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event;
+  let event: any;
 
   try {
-    if (stripe && webhookSecret && signature) {
+    if (process.env.NODE_ENV === 'production') {
+      if (!stripe || !webhookSecret || !signature) {
+        throw new Error('Stripe client, webhook secret, or signature header is missing in production');
+      }
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } else {
-      // In development when keys are not configured, allow unverified payload for testing
-      event = JSON.parse(payload);
-      console.warn('Stripe Webhook signature check skipped: Stripe is not configured or Webhook Secret is missing.');
+      if (stripe && webhookSecret && signature) {
+        event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      } else {
+        // In development when keys are not configured, allow unverified payload for testing
+        event = JSON.parse(payload);
+        console.warn('Stripe Webhook signature check skipped: Stripe is not configured or Webhook Secret is missing.');
+      }
     }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

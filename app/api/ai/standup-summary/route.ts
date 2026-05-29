@@ -3,19 +3,42 @@ import prisma from '@/lib/db';
 import { getLocalDateInTimezone } from '@/lib/timezone';
 import { generateText } from '@/lib/ai';
 import { getStandupPrompt, getStandupSystemInstruction } from '@/prompts/standup';
+import { getSessionUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const cronToken = searchParams.get('token');
   const configuredToken = process.env.CRON_SECRET;
-
-  // Validate token if configured
-  if (configuredToken && cronToken !== configuredToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const teamIdParam = searchParams.get('teamId');
   const force = searchParams.get('force') === 'true';
+
+  // Authenticate & Authorize
+  const user = await getSessionUser(request);
+  let isAuthorized = false;
+
+  // Case A: Valid Cron Secret provided
+  if (configuredToken && cronToken === configuredToken) {
+    isAuthorized = true;
+  }
+
+  // Case B: Logged-in session user with workspace membership
+  if (!isAuthorized && user && teamIdParam) {
+    const membership = await prisma.teamMember.findUnique({
+      where: {
+        teamId_userId: {
+          teamId: teamIdParam,
+          userId: user.userId,
+        },
+      },
+    });
+    if (membership) {
+      isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     // 1. Fetch target teams

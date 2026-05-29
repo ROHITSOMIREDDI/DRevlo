@@ -8,7 +8,12 @@ export async function GET(request: NextRequest) {
   const cronToken = searchParams.get('token');
   const configuredToken = process.env.CRON_SECRET;
 
-  if (configuredToken && cronToken !== configuredToken) {
+  if (!configuredToken) {
+    console.error('CRON_SECRET environment variable is not configured');
+    return NextResponse.json({ error: 'Internal server configuration error' }, { status: 500 });
+  }
+
+  if (cronToken !== configuredToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
