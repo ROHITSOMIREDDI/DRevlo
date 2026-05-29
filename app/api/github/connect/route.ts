@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
 
     const repositories = reposResponse.data.repositories;
 
-    // Enforce limits: Free tier can connect a maximum of 2 repositories
+    // Enforce limits: Free tier can connect a maximum of 3 repositories
     const isFree = team.owner.plan === 'FREE';
-    const reposToSync = isFree ? repositories.slice(0, 2) : repositories;
-    const limitReached = isFree && repositories.length > 2;
+    const reposToSync = isFree ? repositories.slice(0, 3) : repositories;
+    const limitReached = isFree && repositories.length > 3;
 
     const repositoryUpserts = reposToSync.map((repo) => {
       return prisma.repository.upsert({

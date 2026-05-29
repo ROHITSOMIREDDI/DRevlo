@@ -52,9 +52,9 @@ export async function POST(
       where: { teamId },
     });
 
-    if (team.owner.plan === 'FREE' && currentMembersCount >= 3) {
+    if (team.owner.plan === 'FREE' && currentMembersCount >= 4) {
       return NextResponse.json(
-        { error: 'Workspace limit reached: Free tier is limited to 3 team members. Please upgrade to Pro.' },
+        { error: 'Workspace limit reached: Free tier is limited to 4 team members. Please upgrade to Pro.' },
         { status: 403 }
       );
     }

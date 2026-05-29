@@ -316,7 +316,7 @@ export default function SettingsPage() {
           <div>
             <p className="font-bold">Repository Limit Enforced (Free Plan)</p>
             <p className="text-[10px] text-amber-500/80 mt-0.5">
-              Your GitHub App installation has access to multiple repos, but only the first 2 have been connected to Drevlo. Please upgrade to Pro to unlock unlimited repositories.
+              Your GitHub App installation has access to multiple repos, but only the first 3 have been connected to Drevlo. Please upgrade to Pro to unlock unlimited repositories.
             </p>
           </div>
         </div>
@@ -476,7 +476,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="font-bold text-slate-200">Free Tier Gating Enforcement</p>
                     <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                      Free workspaces are limited to a maximum of <strong>3 members</strong>. Upgrade your workspace to invite unlimited developers.
+                      Free workspaces are limited to a maximum of <strong>4 members</strong>. Upgrade your workspace to invite unlimited developers.
                     </p>
                   </div>
                 </div>
@@ -537,7 +537,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-900">
                     <span className="text-slate-500">Seats Capacity:</span>
-                    <span className="text-slate-300">{userPlan === 'FREE' ? '3 Max' : 'Unlimited'}</span>
+                    <span className="text-slate-300">{userPlan === 'FREE' ? '4 Max' : 'Unlimited'}</span>
                   </div>
                 </div>
               </div>
@@ -573,7 +573,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="font-bold text-slate-200">Free Tier Repository Limits</p>
                     <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                      Free workspaces are limited to tracking a maximum of <strong>2 repositories</strong>. Upgrade to Pro to track unlimited repositories.
+                      Free workspaces are limited to tracking a maximum of <strong>3 repositories</strong>. Upgrade to Pro to track unlimited repositories.
                     </p>
                   </div>
                 </div>
@@ -695,8 +695,8 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <p className="text-slate-200">Free Tier</p>
                   <ul className="list-disc list-inside pl-1 space-y-1 text-slate-500 text-[10px]">
-                    <li>Max 3 team members</li>
-                    <li>Max 2 connected repos</li>
+                    <li>Max 4 team members</li>
+                    <li>Max 3 connected repos</li>
                     <li>Automated 9:00 AM cron reports</li>
                     <li>No custom AI manual regenerations</li>
                   </ul>
