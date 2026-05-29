@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useDashboard } from './layout';
-import { Building, Sparkles, AlertCircle, Plus, LayoutDashboard, ExternalLink } from 'lucide-react';
+import { useDashboard } from '../layout';
+import { Building, Sparkles, AlertCircle, Plus, LayoutDashboard } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, activeTeam, refreshSession } = useDashboard();

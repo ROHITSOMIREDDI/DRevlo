@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('drevlo_session');
 
   // Define route classification
+  const isLandingPage = pathname === '/';
   const isAuthPage = pathname === '/login' || pathname === '/signup';
   const isApiRoute = pathname.startsWith('/api');
   const isStaticAsset =
@@ -19,7 +20,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/favicon.ico';
 
   // Protect all dashboard layout pages (all routes that are not public or api)
-  const isProtectedRoute = !isAuthPage && !isApiRoute && !isStaticAsset;
+  const isProtectedRoute = !isLandingPage && !isAuthPage && !isApiRoute && !isStaticAsset;
 
   let isAuthenticated = false;
 
@@ -32,13 +33,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect authenticated users visiting the landing page to /dashboard
+  if (isLandingPage && isAuthenticated) {
+    const dashboardUrl = new URL('/dashboard', request.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthPage && isAuthenticated) {
-    const dashboardUrl = new URL('/', request.url);
+    const dashboardUrl = new URL('/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 

@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const navLinks = [
-    { name: 'Overview', href: '/', icon: LayoutDashboard },
+    { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Commit Analytics', href: '/commits', icon: GitCommit },
     { name: 'PR Analytics', href: '/prs', icon: GitPullRequest },
     { name: 'Standup Tracker', href: '/standups', icon: Calendar },
@@ -158,7 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           {/* Logo / Header */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-slate-900">
-            <Link href="/" className="flex items-center space-x-3 group">
+            <Link href="/dashboard" className="flex items-center space-x-3 group">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-indigo-500 shadow-md">
                 <span className="text-sm font-bold text-slate-950">D</span>
               </div>
@@ -270,7 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Mobile Header and Menu Drawer */}
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex h-16 items-center justify-between px-6 border-b border-slate-900 bg-slate-950/20 backdrop-blur-xl md:hidden">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/dashboard" className="flex items-center space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-indigo-500">
                 <span className="text-xs font-bold text-slate-950">D</span>
               </div>
