@@ -22,17 +22,24 @@ async function main() {
     try {
       // Execute the schema creation first if present
       if (sqlWithoutComments.includes('CREATE SCHEMA IF NOT EXISTS auth;')) {
-        await prisma.$executeRawUnsafe('CREATE SCHEMA IF NOT EXISTS auth;');
+        try {
+          await prisma.$executeRawUnsafe('CREATE SCHEMA IF NOT EXISTS auth;');
+        } catch (e) {
+          console.log('Note: CREATE SCHEMA IF NOT EXISTS auth failed (expected on managed Supabase platforms).');
+        }
         // Remove schema creation from the rest of SQL
         sqlWithoutComments = sqlWithoutComments.replace('CREATE SCHEMA IF NOT EXISTS auth;', '');
       }
-      await prisma.$executeRawUnsafe(functionSql);
-      console.log('Successfully created mock auth.uid() function.');
+      try {
+        await prisma.$executeRawUnsafe(functionSql);
+        console.log('Successfully created mock auth.uid() function.');
+      } catch (e) {
+        console.log('Note: CREATE OR REPLACE FUNCTION auth.uid() failed (expected on managed Supabase platforms where auth.uid() is pre-defined).');
+      }
       // Remove function SQL from remaining queries
       sqlWithoutComments = sqlWithoutComments.replace(functionSql, '');
     } catch (err) {
-      console.error('Failed to create mock auth.uid() function:', err);
-      process.exit(1);
+      console.warn('Failed to process mock auth.uid() fallback structure:', err);
     }
   }
 
