@@ -3,11 +3,28 @@ import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { generateText } from '@/lib/ai';
 import { getRetroPrompt, getRetroSystemInstruction } from '@/prompts/retro';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate Limiting Check
+  const limiter = await rateLimit(request, 'ai-retro', 5, 60);
+  if (!limiter.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': String(limiter.limit),
+          'X-RateLimit-Remaining': String(limiter.remaining),
+          'X-RateLimit-Reset': String(limiter.reset),
+        },
+      }
+    );
   }
 
   const { searchParams } = new URL(request.url);
