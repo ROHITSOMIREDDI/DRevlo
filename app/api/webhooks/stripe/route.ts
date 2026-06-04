@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature');
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event: any;
+  let event: Stripe.Event;
 
   try {
     if (process.env.NODE_ENV === 'production') {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
       } else {
         // In development when keys are not configured, allow unverified payload for testing
-        event = JSON.parse(payload);
+        event = JSON.parse(payload) as unknown as Stripe.Event;
         console.warn('Stripe Webhook signature check skipped: Stripe is not configured or Webhook Secret is missing.');
       }
     }

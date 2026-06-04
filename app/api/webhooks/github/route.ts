@@ -5,6 +5,16 @@ import { generateText } from '@/lib/ai';
 import { getCodeReviewPrompt, getCodeReviewSystemInstruction } from '@/prompts/code-review';
 import { isDuplicateWebhook } from '@/lib/rate-limit';
 
+interface GitHubCommitPayload {
+  id: string;
+  message: string;
+  timestamp: string;
+  author: {
+    username?: string;
+    name?: string;
+  };
+}
+
 /**
  * Validates the GitHub webhook signature using HMAC-SHA256.
  */
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 1. Process PUSH event (Commits)
     if (eventType === 'push') {
       const commits = payload.commits || [];
-      const upserts = commits.map((commit: any) => {
+      const upserts = commits.map((commit: GitHubCommitPayload) => {
         return prisma.commit.upsert({
           where: { sha: commit.id },
           update: {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDashboard } from '../layout';
 import TeamLeaderboard from '@/components/dashboard/leaderboard';
 import { Users, UserPlus, Trash2, AlertCircle, CheckCircle, Mail, ShieldAlert } from 'lucide-react';
@@ -31,7 +31,7 @@ export default function TeamPage() {
   // Remove member states
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     if (!activeTeam) return;
     setIsLoadingLeaderboard(true);
     try {
@@ -45,11 +45,15 @@ export default function TeamPage() {
     } finally {
       setIsLoadingLeaderboard(false);
     }
-  };
+  }, [activeTeam]);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [activeTeam]);
+    const run = async () => {
+      await Promise.resolve();
+      fetchLeaderboard();
+    };
+    run();
+  }, [fetchLeaderboard]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +198,7 @@ export default function TeamPage() {
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workspace Role</label>
                   <select
                     value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as any)}
+                    onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER' | 'VIEWER')}
                     className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none transition-colors"
                   >
                     <option value="MEMBER">Member (Read/Write)</option>

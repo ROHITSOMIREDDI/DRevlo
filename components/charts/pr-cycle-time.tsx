@@ -78,7 +78,7 @@ export default function PrCycleTime({ data }: PrCycleTimeProps) {
                 }}
                 itemStyle={{ color: 'rgb(203, 213, 225)' }}
                 labelStyle={{ fontWeight: 'bold', color: 'rgb(255, 255, 255)', marginBottom: '4px' }}
-                formatter={(value: any) => [`${Number(value).toFixed(1)} hrs`]}
+                formatter={(value: unknown) => [`${Number(value).toFixed(1)} hrs`]}
               />
               <Area
                 name="Avg Cycle Time"
