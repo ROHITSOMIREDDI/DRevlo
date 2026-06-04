@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       select: { cycleTimeHours: true },
     });
     const prsMerged = mergedPrs.length;
-    const totalCycleTime = mergedPrs.reduce((acc, pr) => acc + (pr.cycleTimeHours || 0), 0);
+    const totalCycleTime = mergedPrs.reduce((acc: number, pr) => acc + (pr.cycleTimeHours || 0), 0);
     const avgCycleTimeHours = prsMerged > 0 ? totalCycleTime / prsMerged : 24.0;
 
     // B. Commits per dev per day

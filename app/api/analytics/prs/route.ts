@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const totalMerged = mergedPrs.length;
     const avgCycleTime =
       totalMerged > 0
-        ? mergedPrs.reduce((acc, curr) => acc + (curr.cycleTimeHours || 0), 0) / totalMerged
+        ? mergedPrs.reduce((acc: number, curr) => acc + (curr.cycleTimeHours || 0), 0) / totalMerged
         : 0;
 
     const closedPrs = prs.filter((p) => p.state === 'closed');
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
       if (prsOnDate.length > 0) {
         const hours = prsOnDate.map((p) => p.cycleTimeHours || 0).sort((a, b) => a - b);
-        const sum = hours.reduce((acc, curr) => acc + curr, 0);
+        const sum = hours.reduce((acc: number, curr) => acc + curr, 0);
         const avg = sum / hours.length;
 
         // p50 (median)
