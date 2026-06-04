@@ -130,58 +130,61 @@ export async function POST(request: NextRequest) {
       });
 
       if (state === 'merged') {
-        try {
-          const dbReviews = await prisma.prReview.findMany({
-            where: { prId: dbPr.id },
-            orderBy: { submittedAt: 'asc' },
-          });
+        // Run AI Code Review asynchronously in the background to prevent webhook timeout
+        (async () => {
+          try {
+            const dbReviews = await prisma.prReview.findMany({
+              where: { prId: dbPr.id },
+              orderBy: { submittedAt: 'asc' },
+            });
 
-          const reviewStates = dbReviews.map(
-            (r) => `Reviewer: ${r.reviewerId}, Action: ${r.state}`
-          );
-
-          let timeToFirstReviewHours = 0.0;
-          if (dbReviews.length > 0) {
-            timeToFirstReviewHours = Math.max(
-              0,
-              (dbReviews[0].submittedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+            const reviewStates = dbReviews.map(
+              (r) => `Reviewer: ${r.reviewerId}, Action: ${r.state}`
             );
+
+            let timeToFirstReviewHours = 0.0;
+            if (dbReviews.length > 0) {
+              timeToFirstReviewHours = Math.max(
+                0,
+                (dbReviews[0].submittedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+              );
+            }
+
+            const filesChanged = pr.changed_files || 0;
+            const linesAdded = pr.additions || 0;
+            const linesRemoved = pr.deletions || 0;
+
+            const systemInstruction = getCodeReviewSystemInstruction();
+            const prompt = getCodeReviewPrompt(
+              pr.title,
+              filesChanged,
+              linesAdded,
+              linesRemoved,
+              reviewStates,
+              timeToFirstReviewHours
+            );
+
+            const aiResponse = await generateText(prompt, systemInstruction);
+
+            await prisma.aiReport.create({
+              data: {
+                teamId: repository.teamId,
+                type: `review_${dbPr.id}`,
+                content: JSON.stringify({
+                  prId: dbPr.id,
+                  prTitle: pr.title,
+                  prNumber: pr.number,
+                  insight: aiResponse,
+                  filesChanged,
+                  linesAdded,
+                  linesRemoved,
+                }),
+              },
+            });
+          } catch (err) {
+            console.error(`Failed to generate code review insight for PR #${githubPrId}:`, err);
           }
-
-          const filesChanged = pr.changed_files || 0;
-          const linesAdded = pr.additions || 0;
-          const linesRemoved = pr.deletions || 0;
-
-          const systemInstruction = getCodeReviewSystemInstruction();
-          const prompt = getCodeReviewPrompt(
-            pr.title,
-            filesChanged,
-            linesAdded,
-            linesRemoved,
-            reviewStates,
-            timeToFirstReviewHours
-          );
-
-          const aiResponse = await generateText(prompt, systemInstruction);
-
-          await prisma.aiReport.create({
-            data: {
-              teamId: repository.teamId,
-              type: `review_${dbPr.id}`,
-              content: JSON.stringify({
-                prId: dbPr.id,
-                prTitle: pr.title,
-                prNumber: pr.number,
-                insight: aiResponse,
-                filesChanged,
-                linesAdded,
-                linesRemoved,
-              }),
-            },
-          });
-        } catch (err) {
-          console.error(`Failed to generate code review insight for PR #${githubPrId}:`, err);
-        }
+        })();
       }
 
       return NextResponse.json({ success: true, message: `Processed PR #${githubPrId} (${action})` });
