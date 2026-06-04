@@ -15,8 +15,16 @@ export interface JWTPayload {
   githubId: string;
 }
 
-export async function signJWT(payload: JWTPayload): Promise<string> {
+export async function signAccessToken(payload: JWTPayload): Promise<string> {
   return await new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: ALGORITHM })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(secretKey);
+}
+
+export async function signRefreshToken(userId: string): Promise<string> {
+  return await new SignJWT({ userId })
     .setProtectedHeader({ alg: ALGORITHM })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -30,7 +38,19 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
     });
     return payload as unknown as JWTPayload;
   } catch (error) {
-    console.error('JWT validation failed:', error);
+    console.error('Access JWT validation failed:', error);
+    return null;
+  }
+}
+
+export async function verifyRefreshToken(token: string): Promise<{ userId: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, secretKey, {
+      algorithms: [ALGORITHM],
+    });
+    return payload as unknown as { userId: string };
+  } catch (error) {
+    console.error('Refresh JWT validation failed:', error);
     return null;
   }
 }

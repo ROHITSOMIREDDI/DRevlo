@@ -97,3 +97,56 @@ export async function rateLimit(
     reset: record.resetTime,
   };
 }
+
+// Cache for GitHub webhook delivery IDs to prevent replay attacks
+const processedWebhooks = new Map<string, number>();
+
+/**
+ * Checks if a GitHub webhook delivery ID has already been processed within the last 24 hours.
+ * Uses Upstash Redis if configured, otherwise falls back to local in-memory cache.
+ */
+export async function isDuplicateWebhook(deliveryId: string): Promise<boolean> {
+  const cacheKey = `webhook:github:${deliveryId}`;
+  const now = Math.floor(Date.now() / 1000);
+  const ttl = 86400; // 24 hours
+  const expiry = now + ttl;
+
+  const redisUrl = process.env.UPSTASH_REDIS_URL;
+  const redisToken = process.env.UPSTASH_REDIS_TOKEN;
+
+  if (redisUrl && redisToken) {
+    try {
+      const cleanUrl = redisUrl.endsWith('/') ? redisUrl : `${redisUrl}/`;
+      // Upstash SET key value EX seconds NX returns OK if set successfully, or null if exists
+      const response = await fetch(`${cleanUrl}SET/${cacheKey}/1/NX/EX/${ttl}`, {
+        headers: { Authorization: `Bearer ${redisToken}` },
+        signal: AbortSignal.timeout(2000),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.result === null;
+      }
+    } catch (err) {
+      console.error('Redis duplicate webhook check failed, falling back to local memory:', err);
+    }
+  }
+
+  // Cleanup old local items occasionally (1% chance per check)
+  if (Math.random() < 0.01) {
+    for (const [key, exp] of processedWebhooks.entries()) {
+      if (now > exp) {
+        processedWebhooks.delete(key);
+      }
+    }
+  }
+
+  if (processedWebhooks.has(cacheKey)) {
+    const exp = processedWebhooks.get(cacheKey)!;
+    if (now <= exp) {
+      return true;
+    }
+  }
+
+  processedWebhooks.set(cacheKey, expiry);
+  return false;
+}

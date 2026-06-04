@@ -3,7 +3,7 @@ import prisma from '@/lib/db';
 import { verifyJWT } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get('drevlo_session');
+  const sessionCookie = request.cookies.get('drevlo_access');
 
   if (!sessionCookie) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

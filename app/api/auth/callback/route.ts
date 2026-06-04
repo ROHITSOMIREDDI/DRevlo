@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { signJWT } from '@/lib/jwt';
+import { signAccessToken, signRefreshToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -36,20 +36,38 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const token = await signJWT({
+    const sessionToken = await signAccessToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       githubId: user.githubId,
     });
 
+    const refreshToken = await signRefreshToken(user.id);
+
+    // Save the refresh token in the database
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
+
     const response = NextResponse.redirect(appUrl);
-    response.cookies.set('drevlo_session', token, {
+    response.cookies.set('drevlo_access', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+      maxAge: 15 * 60, // 15 minutes
+    });
+    response.cookies.set('drevlo_refresh', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return response;
@@ -135,21 +153,39 @@ export async function GET(request: NextRequest) {
     });
 
     // 5. Sign JWT session token
-    const token = await signJWT({
+    const sessionToken = await signAccessToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       githubId: user.githubId,
     });
 
-    // 6. Set JWT session cookie and redirect to dashboard
+    const refreshToken = await signRefreshToken(user.id);
+
+    // Save the refresh token in the database
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
+
+    // 6. Set JWT cookies and redirect to dashboard
     const response = NextResponse.redirect(appUrl);
-    response.cookies.set('drevlo_session', token, {
+    response.cookies.set('drevlo_access', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+      maxAge: 15 * 60, // 15 minutes
+    });
+    response.cookies.set('drevlo_refresh', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return response;

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { signJWT, verifyJWT } from '../lib/jwt';
+import { signAccessToken, signRefreshToken, verifyJWT, verifyRefreshToken } from '../lib/jwt';
 
 describe('JWT Utility', () => {
-  it('should successfully sign and verify a JWT', async () => {
+  it('should successfully sign and verify an access token', async () => {
     const payload = {
       userId: 'test-user-uuid',
       email: 'test@example.com',
@@ -10,7 +10,7 @@ describe('JWT Utility', () => {
       githubId: '12345678',
     };
 
-    const token = await signJWT(payload);
+    const token = await signAccessToken(payload);
     expect(token).toBeDefined();
     expect(typeof token).toBe('string');
 
@@ -20,6 +20,16 @@ describe('JWT Utility', () => {
     expect(verified?.email).toBe(payload.email);
     expect(verified?.name).toBe(payload.name);
     expect(verified?.githubId).toBe(payload.githubId);
+  });
+
+  it('should successfully sign and verify a refresh token', async () => {
+    const userId = 'test-user-uuid';
+    const token = await signRefreshToken(userId);
+    expect(token).toBeDefined();
+    
+    const verified = await verifyRefreshToken(token);
+    expect(verified).toBeDefined();
+    expect(verified?.userId).toBe(userId);
   });
 
   it('should return null for an invalid JWT', async () => {

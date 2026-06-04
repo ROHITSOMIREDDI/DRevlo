@@ -136,10 +136,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Stripe checkout session creation failed:', error);
     return NextResponse.json(
-      { error: errorMessage },
+      { error: 'Failed to initiate checkout session. Please try again later.' },
       { status: 500 }
     );
   }

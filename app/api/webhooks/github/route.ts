@@ -3,6 +3,7 @@ import prisma from '@/lib/db';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { generateText } from '@/lib/ai';
 import { getCodeReviewPrompt, getCodeReviewSystemInstruction } from '@/prompts/code-review';
+import { isDuplicateWebhook } from '@/lib/rate-limit';
 
 /**
  * Validates the GitHub webhook signature using HMAC-SHA256.
@@ -35,6 +36,16 @@ export async function POST(request: NextRequest) {
   // Verify signature
   if (!verifySignature(rawBody, signature)) {
     return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
+  }
+
+  // Webhook Replay Protection: Check delivery ID
+  const deliveryId = request.headers.get('x-github-delivery');
+  if (deliveryId) {
+    const isDuplicate = await isDuplicateWebhook(deliveryId);
+    if (isDuplicate) {
+      console.warn(`Duplicate GitHub webhook payload ignored for delivery: ${deliveryId}`);
+      return NextResponse.json({ success: true, message: 'Duplicate payload ignored' });
+    }
   }
 
   const eventType = request.headers.get('x-github-event');
