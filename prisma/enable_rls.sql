@@ -18,21 +18,19 @@ ALTER TABLE "ai_reports" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "subscriptions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "refresh_tokens" ENABLE ROW LEVEL SECURITY;
 
--- Enable FORCE ROW LEVEL SECURITY to ensure RLS is enforced for the table owners (Prisma connection)
--- Note: In a production environment with a dedicated application role (e.g. not superuser),
--- FORCE is not required, but this guarantees RLS applies even to the owner connection.
-ALTER TABLE "users" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "teams" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "team_members" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "repositories" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "commits" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "pull_requests" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "pr_reviews" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "standups" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "sprints" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "ai_reports" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "subscriptions" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "refresh_tokens" FORCE ROW LEVEL SECURITY;
+-- Disable FORCE ROW LEVEL SECURITY to allow the database owner/superuser role (used by Prisma connection) to bypass RLS policies
+ALTER TABLE "users" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "teams" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "team_members" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "repositories" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "commits" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "pull_requests" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "pr_reviews" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "standups" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "sprints" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "ai_reports" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "subscriptions" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "refresh_tokens" NO FORCE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist to allow re-runs
 DROP POLICY IF EXISTS users_policy ON "users";
