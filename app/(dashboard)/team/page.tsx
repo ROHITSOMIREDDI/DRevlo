@@ -14,6 +14,16 @@ interface LeaderboardMember {
   score: number;
 }
 
+interface TeamMemberRecord {
+  id: string;
+  role: 'ADMIN' | 'MEMBER' | 'VIEWER';
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
 export default function TeamPage() {
   const { user, activeTeam, refreshSession } = useDashboard();
   
@@ -31,6 +41,11 @@ export default function TeamPage() {
   // Remove member states
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
+  // Team members list state
+  const [teamMembers, setTeamMembers] = useState<TeamMemberRecord[]>([]);
+  const [teamOwnerId, setTeamOwnerId] = useState<string | null>(null);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+
   const fetchLeaderboard = useCallback(async () => {
     if (!activeTeam) return;
     setIsLoadingLeaderboard(true);
@@ -47,13 +62,31 @@ export default function TeamPage() {
     }
   }, [activeTeam]);
 
+  const fetchTeamMembers = useCallback(async () => {
+    if (!activeTeam) return;
+    setIsLoadingMembers(true);
+    try {
+      const res = await fetch(`/api/teams/${activeTeam.teamId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTeamMembers(data.members || []);
+        setTeamOwnerId(data.ownerId || null);
+      }
+    } catch (err) {
+      console.error('Failed to load team members:', err);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [activeTeam]);
+
   useEffect(() => {
     const run = async () => {
       await Promise.resolve();
       fetchLeaderboard();
+      fetchTeamMembers();
     };
     run();
-  }, [fetchLeaderboard]);
+  }, [fetchLeaderboard, fetchTeamMembers]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +109,7 @@ export default function TeamPage() {
         setInviteSuccess(`Successfully added ${inviteEmail} to the team!`);
         setInviteEmail('');
         await refreshSession(); // Refresh list of members in session
+        await fetchTeamMembers(); // Refresh team members list
         await fetchLeaderboard(); // Refresh leaderboard data
       } else {
         setInviteError(data.error || 'Failed to send invitation');
@@ -100,6 +134,7 @@ export default function TeamPage() {
 
       if (res.ok) {
         await refreshSession();
+        await fetchTeamMembers();
         await fetchLeaderboard();
       } else {
         const data = await res.json();
@@ -143,28 +178,58 @@ export default function TeamPage() {
             </h3>
 
             <div className="divide-y divide-slate-900">
-              {user?.memberships
-                .filter((m) => m.teamId === activeTeam?.teamId)
-                .map((m) => (
-                  <div key={user.id} className="py-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-9 w-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300">
-                        {user.name?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-200">{user.name} (You)</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] px-2.5 py-0.5 font-bold uppercase">
-                        {m.role}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              {isLoadingMembers ? (
+                <div className="py-4 text-center text-xs text-slate-500">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent mx-auto mb-2" />
+                  <span>Loading members...</span>
+                </div>
+              ) : teamMembers.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-500">
+                  <span>No workspace members found.</span>
+                </div>
+              ) : (
+                teamMembers.map((member) => {
+                  const isOwner = member.user.id === teamOwnerId;
+                  const isCurrentUser = member.user.id === user?.id;
+                  const showRemoveButton = isAdmin && !isOwner && !isCurrentUser;
 
-              {/* In a real workspace page we'd fetch all members in this team from /api/teams/:id but since user memberships is cached in session, we show simulated other members if any, or list them if we have database query. Let's keep it simple for the MVP */}
+                  return (
+                    <div key={member.id} className="py-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-9 w-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300">
+                          {member.user.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-slate-200">
+                            {member.user.name} {isCurrentUser && '(You)'}
+                          </p>
+                          <p className="text-xs text-slate-500">{member.user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        {isOwner && (
+                          <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] px-2.5 py-0.5 font-bold uppercase tracking-wider">
+                            OWNER
+                          </span>
+                        )}
+                        <span className="rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] px-2.5 py-0.5 font-bold uppercase">
+                          {member.role}
+                        </span>
+                        {showRemoveButton && (
+                          <button
+                            onClick={() => handleRemoveMember(member.user.id, member.user.name || 'Member')}
+                            disabled={removingUserId === member.user.id}
+                            className="text-slate-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/5 disabled:opacity-50"
+                            title="Remove Member"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

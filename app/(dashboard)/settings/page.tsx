@@ -66,7 +66,7 @@ export default function SettingsPage() {
     const setupAction = searchParams.get('setup_action');
     const state = searchParams.get('state');
 
-    if (installationId && setupAction === 'install' && activeTeam) {
+    if (installationId && activeTeam) {
       // Forward to the connect API route to process the installation
       const teamId = state || activeTeam.teamId;
       window.location.href = `/api/github/connect?installation_id=${installationId}&state=${teamId}`;
@@ -582,14 +582,60 @@ export default function SettingsPage() {
 
             <div className="space-y-4 pt-4 border-t border-slate-900">
               {isConnected ? (
-                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4 space-y-3">
-                  <div className="flex items-center space-x-2 text-emerald-400 text-xs font-bold">
-                    <CheckCircle2 className="h-4.5 w-4.5" />
-                    <span>CONNECTED</span>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4 space-y-3">
+                    <div className="flex items-center space-x-2 text-emerald-400 text-xs font-bold">
+                      <CheckCircle2 className="h-4.5 w-4.5" />
+                      <span>CONNECTED</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 space-y-1 text-left">
+                      <p>Installation ID: <code className="text-slate-400">{activeTeam?.githubOrg}</code></p>
+                      <p>Webhooks: <span className="text-emerald-400">ACTIVE</span></p>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 space-y-1">
-                    <p>Installation ID: <code className="text-slate-400">{activeTeam?.githubOrg}</code></p>
-                    <p>Webhooks: <span className="text-emerald-400">ACTIVE</span></p>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider text-left">Connected Repositories</h4>
+                    {teamDetails?.repositories && teamDetails.repositories.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {teamDetails.repositories.map((repo: any) => (
+                          <div
+                            key={repo.id}
+                            className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/40 p-4 hover:border-slate-700/60 transition-colors"
+                          >
+                            <div className="flex items-center space-x-3 truncate">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
+                                <GitHubIcon className="h-4.5 w-4.5" />
+                              </div>
+                              <div className="truncate text-left">
+                                <p className="text-xs font-bold text-slate-200 truncate">{repo.name}</p>
+                                <a
+                                  href={`https://github.com/${repo.fullName}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-cyan-400 hover:underline truncate block"
+                                >
+                                  {repo.fullName}
+                                </a>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 shrink-0">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                Sync Active
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-slate-850 p-6 text-center">
+                        <p className="text-xs text-slate-500 font-semibold">No repositories are synced to this workspace.</p>
+                        <p className="text-[10px] text-slate-600 mt-1.5 leading-relaxed">
+                          Go to your GitHub App configuration to grant repository access.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

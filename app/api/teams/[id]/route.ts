@@ -107,6 +107,22 @@ export async function GET(
             stripeCustomerId: true,
           },
         },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+        },
+        repositories: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
 

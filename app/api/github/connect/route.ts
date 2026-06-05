@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { getInstallationClient } from '@/lib/github';
+import { getInstallationClient, syncCommits, syncPullRequests } from '@/lib/github';
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -87,6 +87,23 @@ export async function GET(request: NextRequest) {
     });
 
     await Promise.all(repositoryUpserts);
+
+    // Trigger initial background sync so data is populated immediately
+    try {
+      const dbRepos = await prisma.repository.findMany({
+        where: { teamId },
+      });
+      dbRepos.forEach((repo) => {
+        syncCommits(repo.id).catch((err) =>
+          console.error(`Background commit sync failed for repository ${repo.fullName}:`, err)
+        );
+        syncPullRequests(repo.id).catch((err) =>
+          console.error(`Background PR sync failed for repository ${repo.fullName}:`, err)
+        );
+      });
+    } catch (syncErr) {
+      console.error('Failed to trigger background synchronization:', syncErr);
+    }
 
     // Redirect user back to workspace settings indicating success
     const redirectUrl = `${appUrl}/settings?github_connected=success${limitReached ? '&warning=repo_limit_reached' : ''}`;
