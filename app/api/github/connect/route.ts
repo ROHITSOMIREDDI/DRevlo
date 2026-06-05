@@ -52,6 +52,11 @@ export async function GET(request: NextRequest) {
 
     const repositories = reposResponse.data.repositories;
 
+    console.log(`[GitHub Connect] Successfully authenticated and fetched ${repositories.length} repositories for installation ${installationId}`);
+    repositories.forEach(repo => {
+      console.log(`  - Repo found: ${repo.full_name} (ID: ${repo.id})`);
+    });
+
     // Enforce limits: Free tier can connect a maximum of 3 repositories
     const isFree = team.owner.plan === 'FREE';
     const reposToSync = isFree ? repositories.slice(0, 3) : repositories;
