@@ -133,8 +133,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!email) {
-      console.error('No email found for GitHub user');
-      return NextResponse.redirect(`${appUrl}/login?error=no_email_found`);
+      // Fallback for private emails if the GitHub App does not have the 'Email addresses' read-only permission configured
+      email = `${githubUser.login}@users.noreply.github.com`;
+      console.log(`Using fallback noreply email for user ${githubUser.login}: ${email}`);
     }
 
     // 4. Create or update user in database
