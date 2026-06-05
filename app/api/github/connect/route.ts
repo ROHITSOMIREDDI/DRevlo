@@ -44,14 +44,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/settings?error=team_not_found`);
     }
 
-    // Associate the installationId with the team in the database
-    await prisma.team.update({
-      where: { id: teamId },
-      data: {
-        githubOrg: installationId,
-      },
-    });
-
     // 3. Fetch accessible repositories for this installation and sync them to the database
     const octokit = await getInstallationClient(installationId);
     const reposResponse = await octokit.rest.apps.listReposAccessibleToInstallation({
@@ -87,6 +79,14 @@ export async function GET(request: NextRequest) {
     });
 
     await Promise.all(repositoryUpserts);
+
+    // Associate the installationId with the team in the database after success
+    await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        githubOrg: installationId,
+      },
+    });
 
     // Trigger initial background sync so data is populated immediately
     try {
